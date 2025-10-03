@@ -1,0 +1,159 @@
+---- Inline CSS-------------
+
+#pen-list tbody tr.selected, #pen-list tbody tr.selected:hover {
+  background-color: #EFDDF8;
+ font-weight:700;
+}
+
+/* Remove focus outline from links/buttons inside the IR */
+#pen-list a:focus,
+#pen-list button:focus {
+  /* outline: none !important; */
+  box-shadow: none !important;
+  border: none !important;
+}
+
+
+-------------JavaScript Execute when page load-----------------
+(function(){
+  const REPORT_STATIC_ID = 'pen-list'; // IR Static ID
+  const AUTO_CLICK = true; // if want to use auto click
+
+  // This section check if cursor is on a page item.
+  function isPopupOpen() {
+    const selectors = [
+      '.a-LOV--popup', '.a-LOV-popup', '.apex-item-popup', '.apex-lov',
+      '.ui-autocomplete', '.ui-selectmenu-menu', '.ui-selectmenu-open',
+      '.select2-dropdown', '.select2-container--open',
+      '.ui-datepicker', '.t-Form-datePicker', '.apex-item-datepicker',
+      '.t-Dialog--open', '[role="listbox"]', '[role="menu"]'
+    ];
+
+    for (const sel of selectors) {
+      const els = document.querySelectorAll(sel);
+      for (const el of els) {
+        const style = window.getComputedStyle(el);
+        if (el.offsetParent !== null && style.display !== 'none' && style.visibility !== 'hidden' && el.getBoundingClientRect().height > 0) {
+          return true;
+        }
+      }
+    }
+
+    const active = document.activeElement;
+    if (active) {
+      const popupContainer = active.closest('.ui-datepicker, .a-LOV--popup, .a-LOV-popup, .select2-container--open, .t-Dialog--open');
+      if (popupContainer) return true;
+    }
+    return false;
+  }
+
+  // 🎯 Start ArrowUp / ArrowDown navigation
+  document.addEventListener('keydown', function(e){
+    const report = document.getElementById(REPORT_STATIC_ID);
+    if (!report || !report.contains(e.target)) return; // ✅ scoped
+    if (isPopupOpen()) return; // ⛔ skip when popup open
+
+    const tag = e.target.tagName?.toLowerCase() || '';
+    const type = e.target.type?.toLowerCase() || '';
+    if (
+      tag === "input" || tag === "textarea" || tag === "select" ||
+      ["text","number","date","datetime-local","time"].includes(type)
+    ) return; // ⛔ skip form fields
+
+    if (!(e.key === 'ArrowDown' || e.key === 'ArrowUp')) return;
+
+    const tbody = report.querySelector('tbody');
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.offsetParent !== null);
+    if (!rows.length) return;
+
+    let currentRow = document.activeElement?.closest?.('tr') || null;
+    if (!currentRow || !tbody.contains(currentRow)) {
+      currentRow = rows.find(r => r.classList.contains('selected') || r.getAttribute('aria-selected') === 'true') || rows[0];
+    }
+
+    let idx = rows.indexOf(currentRow);
+    if (idx === -1) idx = 0;
+    idx = e.key === 'ArrowDown'
+      ? Math.min(idx + 1, rows.length - 1)
+      : Math.max(idx - 1, 0);
+
+    const targetRow = rows[idx];
+    if (!targetRow) return;
+
+    rows.forEach(r => r.classList.remove('selected'));
+    targetRow.classList.add('selected');
+
+    let colIndex = 0;
+    const currentCell = document.activeElement?.closest?.('td');
+    if (currentCell && currentCell.parentElement === currentRow) {
+      colIndex = Array.from(currentRow.children).indexOf(currentCell);
+    } else {
+      const focusedInRow = currentRow.querySelector('a, button, input, select, textarea');
+      if (focusedInRow) {
+        const fc = focusedInRow.closest('td');
+        if (fc) colIndex = Array.from(currentRow.children).indexOf(fc);
+      }
+    }
+
+    const targetCell = targetRow.children[colIndex] || targetRow.querySelector('td') || targetRow;
+    const focusable = targetCell.querySelector('a, button, input, [role="button"], [role="link"], textarea, select');
+
+    if (focusable) {
+      focusable.focus();
+      // if we don't want the auto click then comment this condition. So user can click enter to activate the click ---Start
+      if (AUTO_CLICK) {
+        setTimeout(() => { try { focusable.click(); } catch {} }, 10);
+      }
+        // end
+    } else {
+      const a = targetRow.querySelector('a, button');
+        // Start
+      if (a) {
+        a.focus();
+        if (AUTO_CLICK) setTimeout(() => { try { a.click(); } catch {} }, 10);
+      }
+        // End
+    }
+
+    targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    e.preventDefault();
+  }, true);
+
+  // 🔷 Sync highlight when Tab navigation moves inside IR
+  document.addEventListener("focusin", function (e) {
+    const report = document.getElementById(REPORT_STATIC_ID);
+    if (!report || !report.contains(e.target)) return;
+
+    const row = e.target.closest(`#${REPORT_STATIC_ID} tbody tr`);
+    if (!row) return;
+
+    report.querySelectorAll("tbody tr.selected").forEach(r => r.classList.remove("selected"));
+    row.classList.add("selected");
+  });
+
+  // ⏎ Enter key = trigger focused element's link/button
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    const report = document.getElementById(REPORT_STATIC_ID);
+    if (!report || !report.contains(e.target)) return;
+    if (isPopupOpen()) return;
+
+    const active = document.activeElement;
+    if (!active) return;
+
+    // If it's a button or link, trigger click
+    if (active.matches('a, button, [role="button"], [role="link"]')) {
+      try { active.click(); } catch {}
+      e.preventDefault();
+    } else {
+      // Else find a link inside current row
+      const row = active.closest('tr');
+      const link = row?.querySelector('a, button, [role="button"], [role="link"]');
+      if (link) {
+        try { link.click(); } catch {}
+        e.preventDefault();
+      }
+    }
+  });
+})();
