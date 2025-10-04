@@ -101,19 +101,15 @@
 
     if (focusable) {
       focusable.focus();
-      // if we don't want the auto click then comment this condition. So user can click enter to activate the click ---Start
       if (AUTO_CLICK) {
         setTimeout(() => { try { focusable.click(); } catch {} }, 10);
       }
-        // end
     } else {
       const a = targetRow.querySelector('a, button');
-        // Start
       if (a) {
         a.focus();
         if (AUTO_CLICK) setTimeout(() => { try { a.click(); } catch {} }, 10);
       }
-        // End
     }
 
     targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -156,4 +152,5 @@
       }
     }
   });
+
 })();
