@@ -1,0 +1,78 @@
+// Start Highlight Function //
+
+function highlightCalendarDate() {
+
+    const allDayCells = document.querySelectorAll('.fc-daygrid-day, .fc-day, .fc-day-top');
+    allDayCells.forEach(function(cell) {
+        cell.classList.remove('highlighted-date');
+    });
+    
+    // STEP 2: Get the new selected date
+    const selectedDate = apex.item("P1024050_APPOINT_DT").getValue();
+    
+    if (!selectedDate) return;
+    
+    // Parse the selected date (DD/MM/YYYY)
+    const parts = selectedDate.split('/');
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const pickerDate = new Date(year, month, day);
+    
+    // Find all day cells in the calendar
+    const dayCells = document.querySelectorAll('.fc-daygrid-day, .fc-day, .fc-day-top');
+    
+    // STEP 3: Apply highlight to matching cell
+    let foundMatch = false;
+    
+    dayCells.forEach(function(cell) {
+        const cellDateAttr = cell.getAttribute('data-date');
+        
+        if (cellDateAttr) {
+            const cellDate = new Date(cellDateAttr);
+            const cellDateOnly = new Date(
+                cellDate.getFullYear(),
+                cellDate.getMonth(),
+                cellDate.getDate()
+            );
+            
+            if (pickerDate.getTime() === cellDateOnly.getTime()) {
+                cell.classList.add('highlighted-date');
+                foundMatch = true;
+            }
+        }
+    });
+    
+    if (!foundMatch) {
+        console.log('⚠️ No matching cell found for date:', selectedDate);
+    }
+}
+
+// End Highlight Function //
+
+// Start Css //
+
+.fc-daygrid-day-frame:hover, .highlighted-date {
+    background-color: #a9aaab /*!important*/;
+    cursor: pointer;
+}
+
+// End Css //
+
+// Start Navigation //
+var appDate = $v('Date Picker Field'); // Date Picker Field
+
+var parts = appDate.split('/');
+var day   = parts[0];
+var month = parts[1];
+var year  = parts[2];
+
+var isoDate = year + '-' + month + '-' + day;
+
+apex.region("Region Static Id").widget().data("fullCalendar").gotoDate(isoDate); // Show date to calender
+
+setTimeout(() => {
+    highlightCalendarDate()
+}, 100);
+
+// End Navigation //
