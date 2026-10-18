@@ -1,0 +1,78 @@
+function (options) {
+
+    var calendarApi = null;
+
+    // Helper: format a Date as DD/MM/YYYY
+    function formatDate(d) {
+        var dd = String(d.getDate()).padStart(2, "0");
+        var mm = String(d.getMonth() + 1).padStart(2, "0");
+        return dd + "/" + mm + "/" + d.getFullYear();
+    }
+
+    function navigationPageItem() {
+        var hn = $v('P1024050_HN');
+        var regNo = $v('P1024050_REG_NO');
+
+        if (hn == '' && regNo == '') {
+            setTimeout(()=>{
+                $('#P1024050_FNAME').focus();
+            },150);
+        } else if (regNo != '') {
+            setTimeout(()=>{
+                $('#P1024050_BU_NO').focus();
+            },150);
+        }
+    }
+
+    // Capture the calendar instance whenever the view renders
+    options.datesSet = function (info) {
+        calendarApi = info.view.calendar;
+    };
+
+    // ---- Date click: allow today/future, alert for past ----
+    options.dateClick = function (info) {
+        var parts = info.dateStr.split("-");   // YYYY-MM-DD
+        var clickedDate = new Date(
+            parseInt(parts[0], 10),
+            parseInt(parts[1], 10) - 1,
+            parseInt(parts[2], 10)
+        );
+
+        var now = new Date();
+        var todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        if (clickedDate >= todayDate) {
+            apex.item("P1024050_APPOINT_DATE").setValue(parts[2] + "/" + parts[1] + "/" + parts[0]);
+            navigationPageItem();
+        } else {
+            apex.message.alert("Cannot select a past date. Please select today or a future date.", function(){
+                navigationPageItem();
+            });
+        }
+    };
+
+    // ---- Custom Today button (never auto-disabled) ----
+    options.customButtons = {
+        myToday: {
+            text: "today",
+            click: function () {
+                var today = new Date();
+
+                if (calendarApi) {
+                    calendarApi.gotoDate(today);
+                }
+
+                apex.item("P1024050_APPOINT_DATE").setValue(formatDate(today));
+                navigationPageItem();
+            }
+        }
+    };
+
+    options.headerToolbar = {
+        left: "prev,next myToday",
+        center: "title",
+        right: "dayGridMonth"
+    };
+
+    return options;
+}
