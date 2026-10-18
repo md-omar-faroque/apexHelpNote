@@ -9,7 +9,7 @@ function (options) {
         return dd + "/" + mm + "/" + d.getFullYear();
     }
 
-    function navigationPageItem() {
+    function navigationPageItem() { // Navigation logic after alert for any date selection
         var hn = $v('P1024050_HN');
         var regNo = $v('P1024050_REG_NO');
 
